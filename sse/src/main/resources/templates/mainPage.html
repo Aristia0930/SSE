@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>SSE Page</title>
+    <meta charset="UTF-8">
+    <script>
+        let eventSource = null;
+        let currentUserId = null;
+
+        function connectSSE() {
+            const input = document.getElementById("userIdInput").value.trim();
+            if (!input) {
+                alert("userId를 입력하세요.");
+                return;
+            }
+
+            if (eventSource) {
+                eventSource.close(); // 기존 연결 종료
+            }
+
+            currentUserId = input;
+            eventSource = new EventSource('/sse/subscribe/' + currentUserId);
+
+            eventSource.onopen = () => {
+                console.log('SSE 연결됨');
+                appendMessage("SSE 연결됨 (" + currentUserId + ")");
+            };
+
+            eventSource.addEventListener("connect", function (e) {
+                console.log("초기 메시지: ", e.data);
+                appendMessage(e.data);
+            });
+
+            eventSource.addEventListener("message", function (e) {
+                console.log("받은 메시지: ", e.data);
+                appendMessage(e.data);
+            });
+
+            eventSource.onerror = function (e) {
+                console.error("SSE 에러 발생", e);
+                appendMessage("SSE 에러 발생 (콘솔 확인)");
+            };
+        }
+
+        function appendMessage(msg) {
+            const messageArea = document.getElementById("messages");
+            const p = document.createElement("p");
+            p.textContent = msg;
+            messageArea.appendChild(p);
+        }
+
+        function sendMessage() {
+            const msg = document.getElementById("messageInput").value;
+            const receiverId = document.getElementById("receiverIdInput").value;
+            if (!msg.trim() || !currentUserId) {
+                alert("userId 연결 후 메시지를 입력하세요.");
+                return;
+            }
+
+            fetch('/sse/notify/' + receiverId + '?message=' + encodeURIComponent(msg)+'&senderId=' + currentUserId, {
+                method: 'POST'
+            })
+                .then(response => response.text())
+                .then(result => {
+                    appendMessage("전송 결과: " + result);
+                    document.getElementById("messageInput").value = '';
+                })
+                .catch(error => {
+                    appendMessage("전송 실패: " + error);
+                });
+        }
+    </script>
+</head>
+<body>
+<h1>SSE 테스트 페이지</h1>
+<p>사용자 ID를 입력하고 SSE 연결 후 메시지를 보내보세요.</p>
+
+<!-- 사용자 ID 입력 및 연결 -->
+<div style="margin-bottom: 1em;">
+    <input type="text" id="userIdInput" placeholder="userId 입력">
+    <button onclick="connectSSE()">SSE 연결</button>
+</div>
+
+<!-- 메시지 전송 -->
+<div style="margin-bottom: 1em;">
+    <input type="text" id="receiverIdInput" placeholder="받는 사람 ID 입력">
+    <input type="text" id="messageInput" placeholder="전송할 메시지 입력">
+    <button onclick="sendMessage()">메시지 전송</button>
+</div>
+
+<!-- 수신 메시지 표시 영역 -->
+<div id="messages" style="margin-top:20px; padding:10px; border:1px solid #ccc;">
+    <h3>수신 메시지</h3>
+</div>
+</body>
+</html>
