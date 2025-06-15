@@ -29,10 +29,10 @@ public class SseController {
     }
 
 
-    //채팅방 연결 추가
-    @GetMapping("/chat/{roomId}")
-    public SseEmitter subscribeRoom(@PathVariable String roomId){
-        //룸 연결 하기
-    }
+//    //채팅방 연결 추가
+//    @GetMapping("/chat/{roomId}")
+//    public SseEmitter subscribeRoom(@PathVariable String roomId){
+//        //룸 연결 하기
+//    }
 
 }
